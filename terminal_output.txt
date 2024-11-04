@@ -1,0 +1,1108 @@
+(vmoe_conda) (env) mahmui@wang1:~/src/src/vmoe$ python3 my_train.py --config vmoe_b16_imagenet21k_randaug_strong_ft_cifar10_2.py --workdir vmoe/configs
+I1104 20:54:25.684562 139915112494144 xla_bridge.py:895] Unable to initialize backend 'rocm': module 'jaxlib.xla_extension' has no attribute 'GpuAllocatorConfig'
+I1104 20:54:25.692147 139915112494144 xla_bridge.py:895] Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+I1104 20:54:25.705818 139915112494144 app.py:70] JAX process: 0 / 1
+I1104 20:54:25.705878 139915112494144 app.py:71] JAX local devices: [CudaDevice(id=0), CudaDevice(id=1), CudaDevice(id=2), CudaDevice(id=3), CudaDevice(id=4), CudaDevice(id=5), CudaDevice(id=6), CudaDevice(id=7)]
+I1104 20:54:25.706196 139915112494144 app.py:74] Using JAX XLA backend 
+I1104 20:54:25.706296 139915112494144 app.py:76] Config: dataset:
+  test:
+    batch_size: 512
+    cache: batched
+    data_dir: null
+    manual_dir: null
+    name: cifar10
+    prefetch: autotune
+    prefetch_device: 2
+    process: decode|resize(128)|value_range(-1,1)|onehot(10, inkey="label", outkey="labels")|keep("image",
+      "labels")
+    split: test
+  train:
+    batch_size: 512
+    data_dir: null
+    manual_dir: null
+    name: cifar10
+    prefetch: autotune
+    prefetch_device: 2
+    process: decode|inception_crop(128)|flip_lr|value_range(-1,1)|onehot(10, inkey="label",
+      outkey="labels")|keep("image", "labels")
+    shuffle_buffer: 50000
+    split: train[:98%]
+  val:
+    batch_size: 512
+    cache: batched
+    data_dir: null
+    manual_dir: null
+    name: cifar10
+    prefetch: autotune
+    prefetch_device: 2
+    process: decode|resize(128)|value_range(-1,1)|onehot(10, inkey="label", outkey="labels")|keep("image",
+      "labels")
+    split: train[98%:]
+description: ViT-B/16, E=8, K=2, Every 2, 300 Epochs
+evaluate:
+  every_steps: 100
+extra_rng_keys: !!python/tuple
+- dropout
+- gating
+initialization:
+  axis_resources_regexes:
+  - &id001 !!python/tuple
+    - Moe/Mlp/.*
+    - !!python/tuple
+      - expert
+  name: initialize_from_vmoe
+  prefix: gs://vmoe_checkpoints/vmoe_b16_imagenet21k_randaug_strong
+  raise_if_target_unmatched: false
+  rules:
+  - !!python/tuple
+    - head
+    - ''
+  - !!python/tuple
+    - ^(.*/pos_embedding)$
+    - params/\1
+    - vit_zoom
+  - !!python/tuple
+    - ^(.*)$
+    - params/\1
+loss:
+  name: softmax_xent
+model:
+  classifier: token
+  encoder:
+    attention_dropout_rate: 0.0
+    dropout_rate: 0.0
+    mlp_dim: 3072
+    moe:
+      dropout_rate: 0.0
+      group_size: 520
+      layers: !!python/tuple
+      - 1
+      - 3
+      - 5
+      - 7
+      - 9
+      - 11
+      num_experts: 8
+      router:
+        dispatcher:
+          batch_priority: false
+          bfloat16: true
+          capacity_factor: 1.5
+          name: einsum
+          partition_spec: !!python/tuple
+          - !!python/tuple
+            - expert
+            - replica
+        importance_loss_weight: 0.005
+        load_loss_weight: 0.005
+        noise_std: 1.0
+        num_selected_experts: 2
+      split_rngs: false
+    num_heads: 12
+    num_layers: 12
+  head_bias_init: -2.302585092994046
+  hidden_size: 768
+  name: VisionTransformerMoe
+  num_classes: 10
+  patch_size: !!python/tuple
+  - 16
+  - 16
+  representation_size: null
+num_expert_partitions: 8
+optimizer:
+  accumulator_dtype: float32
+  gradient_clip:
+    global_norm: 10.0
+  learning_rate:
+    end_value: 1.0e-05
+    peak_value: 0.0015
+    schedule: warmup_cosine_decay
+    warmup_steps: 100
+  momentum: 0.9
+  name: sgd
+params_axis_resources:
+- *id001
+profile:
+  all_processes: false
+  every_secs: 3600.0
+  first_profile: 10
+  num_profile_steps: 5
+report_progress:
+  every_secs: null
+  every_steps: 100
+save_checkpoint:
+  every_steps: 1000
+  keep_last: 1
+  wait_seconds: 300
+seed: 0
+train_steps: 1000
+
+I1104 20:54:25.709882 139915112494144 local.py:45] Setting task status: process_index: 0, process_count: 1
+I1104 20:54:25.709934 139915112494144 local.py:50] Created artifact workdir of type ArtifactType.DIRECTORY and value vmoe/configs.
+I1104 20:54:25.736440 139915112494144 partitioning.py:320] Logical device mesh has axis_names = ('expert', 'replica')
+I1104 20:54:25.736615 139915112494144 partitioning.py:321] Logical device mesh has shape = (8, 1)
+I1104 20:54:25.736790 139915112494144 partitioning.py:352] Logical device mesh:
+I1104 20:54:25.736833 139915112494144 partitioning.py:353] +-----------+
+I1104 20:54:25.736872 139915112494144 partitioning.py:355] | (0, 0)[0] |
+I1104 20:54:25.736905 139915112494144 partitioning.py:355] | (1, 0)[0] |
+I1104 20:54:25.736934 139915112494144 partitioning.py:355] | (2, 0)[0] |
+I1104 20:54:25.736961 139915112494144 partitioning.py:355] | (3, 0)[0] |
+I1104 20:54:25.736989 139915112494144 partitioning.py:355] | (4, 0)[0] |
+I1104 20:54:25.737015 139915112494144 partitioning.py:355] | (5, 0)[0] |
+I1104 20:54:25.737040 139915112494144 partitioning.py:355] | (6, 0)[0] |
+I1104 20:54:25.737067 139915112494144 partitioning.py:355] | (7, 0)[0] |
+I1104 20:54:25.737093 139915112494144 partitioning.py:356] +-----------+
+I1104 20:54:25.995172 139915112494144 dataset_info.py:688] Load dataset info from /home/mahmui/tensorflow_datasets/cifar10/3.0.2
+I1104 20:54:25.999125 139915112494144 dataset_builder.py:632] Reusing dataset cifar10 (/home/mahmui/tensorflow_datasets/cifar10/3.0.2)
+I1104 20:54:26.001187 139915112494144 reader.py:261] Creating a tf.data.Dataset reading 1 files located in folders: /home/mahmui/tensorflow_datasets/cifar10/3.0.2.
+I1104 20:54:26.029484 139915112494144 logging_logger.py:49] Constructing tf.data.Dataset cifar10 for split _EvenSplit(split='test', index=0, count=1, drop_remainder=False), from /home/mahmui/tensorflow_datasets/cifar10/3.0.2
+I1104 20:54:26.263380 139915112494144 reader.py:261] Creating a tf.data.Dataset reading 1 files located in folders: /home/mahmui/tensorflow_datasets/cifar10/3.0.2.
+I1104 20:54:26.284499 139915112494144 logging_logger.py:49] Constructing tf.data.Dataset cifar10 for split _EvenSplit(split='train[:98%]', index=0, count=1, drop_remainder=False), from /home/mahmui/tensorflow_datasets/cifar10/3.0.2
+WARNING:tensorflow:From /home/mahmui/src/env/lib/python3.12/site-packages/tensorflow/python/util/dispatch.py:1260: sample_distorted_bounding_box (from tensorflow.python.ops.image_ops_impl) is deprecated and will be removed in a future version.
+Instructions for updating:
+`seed2` arg is deprecated.Use sample_distorted_bounding_box_v2 instead.
+W1104 20:54:26.319654 139915112494144 deprecation.py:50] From /home/mahmui/src/env/lib/python3.12/site-packages/tensorflow/python/util/dispatch.py:1260: sample_distorted_bounding_box (from tensorflow.python.ops.image_ops_impl) is deprecated and will be removed in a future version.
+Instructions for updating:
+`seed2` arg is deprecated.Use sample_distorted_bounding_box_v2 instead.
+I1104 20:54:26.428049 139915112494144 reader.py:261] Creating a tf.data.Dataset reading 1 files located in folders: /home/mahmui/tensorflow_datasets/cifar10/3.0.2.
+I1104 20:54:26.447292 139915112494144 logging_logger.py:49] Constructing tf.data.Dataset cifar10 for split _EvenSplit(split='train[98%:]', index=0, count=1, drop_remainder=False), from /home/mahmui/tensorflow_datasets/cifar10/3.0.2
+I1104 20:54:26.492313 139915112494144 trainer.py:704] Training for 1000 steps (10.449 epochs) over 49000 examples, with a batch size of 512
+W1104 20:54:26.493904 139915112494144 dispatch.py:180] Finished tracing + transforming _sync_devices_sum for pmap in 0.000551701 sec
+W1104 20:54:26.494021 139915112494144 pxla.py:837] Compiling _sync_devices_sum (139906416264192) for 8 devices with args (ShapedArray(uint32[8]),). (num_replicas=8)
+W1104 20:54:26.574388 139915112494144 dispatch.py:180] Finished jaxpr to MLIR module conversion pmap(_sync_devices_sum) in 0.080237389 sec
+2024-11-04 20:54:26.819179: W external/xla/xla/service/gpu/nvptx_compiler.cc:930] The NVIDIA driver's CUDA version is 12.4 which is older than the PTX compiler version 12.6.77. Because the driver is older than the PTX compiler version, XLA is disabling parallel compilation, which may slow down compilation. You should update your NVIDIA driver or use the NVIDIA-provided CUDA forward compatibility packages.
+W1104 20:54:26.849136 139915112494144 dispatch.py:180] Finished XLA compilation of _sync_devices_sum in 0.273093462 sec
+I1104 20:54:30.545085 139915112494144 abstract_checkpointer.py:35] orbax-checkpoint version: 0.6.4
+I1104 20:54:30.545722 139915112494144 async_checkpointer.py:65] [process=0][thread=MainThread] Using barrier_sync_fn: <function get_barrier_sync_fn.<locals>.<lambda> at 0x7f3e80444400> timeout: 300 secs and primary_host=0 for async checkpoint writes
+I1104 20:54:30.545942 139915112494144 checkpoint_manager.py:557] [process=0][thread=MainThread] CheckpointManager init: checkpointers={'state': <orbax.checkpoint.async_checkpointer.AsyncCheckpointer object at 0x7f3e80373980>, 'dataset_iterator': <orbax.checkpoint.checkpointer.Checkpointer object at 0x7f3e802875f0>}, item_names=None, item_handlers=None, handler_registry=None
+W1104 20:54:30.546120 139915112494144 checkpoint_manager.py:627] Configured `CheckpointManager` using deprecated legacy API. Please follow the instructions at https://orbax.readthedocs.io/en/latest/api_refactor.html to migrate.
+E1104 20:54:30.546332 139915112494144 checkpoint_manager.py:823] Orbax `CheckpointManager` is transitioning toward using asynchronous saving logic under the hood in all cases. Users that configure `CheckpointManager` with some `Checkpointer`s and some `AsyncCheckpointer`s will now see asynchronous logic used to save all items. This may result in breakages if the code is assuming that certain objects will be available immediately after saving. Ensure that if you depend on the result of `save` being fully written at a particular moment, use `wait_until_finished()`.
+I1104 20:54:30.546484 139915112494144 composite_checkpoint_handler.py:224] Deferred registration for item: "state". Adding handler `<orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x7f3e80337b90>` for item "state" and save args `<class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeSaveArgs'>` and restore args `<class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeRestoreArgs'>` to `_handler_registry`.
+I1104 20:54:30.546594 139915112494144 composite_checkpoint_handler.py:224] Deferred registration for item: "dataset_iterator". Adding handler `<orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonCheckpointHandler object at 0x7f3e80373140>` for item "dataset_iterator" and save args `<class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonSaveArgs'>` and restore args `<class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonRestoreArgs'>` to `_handler_registry`.
+I1104 20:54:30.546681 139915112494144 composite_checkpoint_handler.py:224] Deferred registration for item: "metrics". Adding handler `<orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonCheckpointHandler object at 0x7f3e80337650>` for item "metrics" and save args `<class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonSaveArgs'>` and restore args `<class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonRestoreArgs'>` to `_handler_registry`.
+I1104 20:54:30.546765 139915112494144 composite_checkpoint_handler.py:489] Initialized registry DefaultCheckpointHandlerRegistry({('state', <class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeSaveArgs'>): <orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x7f3e80337b90>, ('state', <class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeRestoreArgs'>): <orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x7f3e80337b90>, ('dataset_iterator', <class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonSaveArgs'>): <orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonCheckpointHandler object at 0x7f3e80373140>, ('dataset_iterator', <class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonRestoreArgs'>): <orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonCheckpointHandler object at 0x7f3e80373140>, ('metrics', <class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonSaveArgs'>): <orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonCheckpointHandler object at 0x7f3e80337650>, ('metrics', <class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonRestoreArgs'>): <orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonCheckpointHandler object at 0x7f3e80337650>}).
+I1104 20:54:30.547788 139915112494144 async_checkpointer.py:65] [process=0][thread=MainThread] Using barrier_sync_fn: <function get_barrier_sync_fn.<locals>.<lambda> at 0x7f3e802ad440> timeout: 300 secs and primary_host=0 for async checkpoint writes
+I1104 20:54:30.548163 139915112494144 utils.py:240] [process=0][thread=MainThread] Skipping global process sync, barrier name: CheckpointManager:create_directory
+I1104 20:54:30.549019 139915112494144 checkpoint_manager.py:1460] Found 0 checkpoint steps in vmoe/configs/ckpt
+I1104 20:54:30.549226 139915112494144 checkpoint_manager.py:726] [process=0][thread=MainThread] CheckpointManager created,  primary_host=0, CheckpointManagerOptions=CheckpointManagerOptions(save_interval_steps=1000, max_to_keep=1, keep_time_interval=None, keep_period=None, best_fn=None, best_mode='max', keep_checkpoints_without_metrics=True, step_prefix=None, step_format_fixed_length=None, step_name_format=None, create=True, cleanup_tmp_directories=False, save_on_steps=frozenset(), single_host_load_and_broadcast=False, todelete_subdir=None, enable_background_delete=False, read_only=False, enable_async_checkpointing=True, async_options=AsyncOptions(timeout_secs=300, barrier_sync_fn=None, post_finalization_callback=None), multiprocessing_options=MultiprocessingOptions(primary_host=0, active_processes=None, barrier_sync_key_prefix=None), should_save_fn=None, file_options=FileOptions(path_permission_mode=None), temporary_path_class=None), root_directory=vmoe/configs/ckpt: <orbax.checkpoint.checkpoint_manager.CheckpointManager object at 0x7f3e80287620>
+W1104 20:54:30.572142 139915112494144 dispatch.py:180] Finished tracing + transforming <lambda> for pjit in 0.000828266 sec
+W1104 20:54:30.573164 139915112494144 dispatch.py:180] Finished tracing + transforming <lambda> for pjit in 0.000294209 sec
+W1104 20:54:30.573720 139915112494144 dispatch.py:180] Finished tracing + transforming <lambda> for pjit in 0.000248909 sec
+W1104 20:54:30.574703 139915112494144 dispatch.py:180] Finished tracing + transforming <lambda> for pjit in 0.000507832 sec
+W1104 20:54:30.575751 139915112494144 dispatch.py:180] Finished tracing + transforming <lambda> for pjit in 0.000483751 sec
+W1104 20:54:30.576815 139915112494144 dispatch.py:180] Finished tracing + transforming <lambda> for pjit in 0.000473261 sec
+W1104 20:54:30.577854 139915112494144 dispatch.py:180] Finished tracing + transforming <lambda> for pjit in 0.000465393 sec
+W1104 20:54:30.578853 139915112494144 dispatch.py:180] Finished tracing + transforming <lambda> for pjit in 0.000461340 sec
+W1104 20:54:30.579851 139915112494144 dispatch.py:180] Finished tracing + transforming <lambda> for pjit in 0.000468016 sec
+W1104 20:54:30.585449 139915112494144 dispatch.py:180] Finished tracing + transforming sqrt for pjit in 0.000645399 sec
+W1104 20:54:30.586932 139915112494144 dispatch.py:180] Finished tracing + transforming true_divide for pjit in 0.000552177 sec
+W1104 20:54:30.592275 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000559807 sec
+W1104 20:54:30.593528 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000513554 sec
+W1104 20:54:30.594448 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000370502 sec
+W1104 20:54:30.595364 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000407696 sec
+W1104 20:54:30.596057 139915112494144 dispatch.py:180] Finished tracing + transforming _uniform for pjit in 0.006899357 sec
+W1104 20:54:30.596913 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000383377 sec
+W1104 20:54:30.598127 139915112494144 dispatch.py:180] Finished tracing + transforming maximum for pjit in 0.000320435 sec
+W1104 20:54:30.599354 139915112494144 dispatch.py:180] Finished tracing + transforming minimum for pjit in 0.000355482 sec
+W1104 20:54:30.600045 139915112494144 dispatch.py:180] Finished tracing + transforming clip for pjit in 0.002623320 sec
+W1104 20:54:30.600551 139915112494144 dispatch.py:180] Finished tracing + transforming _truncated_normal for pjit in 0.012809753 sec
+W1104 20:54:30.601558 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000468969 sec
+W1104 20:54:30.603881 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000361204 sec
+W1104 20:54:30.608997 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000353575 sec
+W1104 20:54:30.609769 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000342131 sec
+W1104 20:54:30.610527 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000342369 sec
+W1104 20:54:30.612278 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.001378298 sec
+W1104 20:54:30.612769 139915112494144 dispatch.py:180] Finished tracing + transforming _uniform for pjit in 0.004970312 sec
+W1104 20:54:30.613672 139915112494144 dispatch.py:180] Finished tracing + transforming _normal_real for pjit in 0.006363869 sec
+W1104 20:54:30.613904 139915112494144 dispatch.py:180] Finished tracing + transforming _normal for pjit in 0.006862879 sec
+W1104 20:54:30.614413 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000200510 sec
+W1104 20:54:30.614845 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000193119 sec
+W1104 20:54:30.619067 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_sum for pjit in 0.001111269 sec
+W1104 20:54:30.619574 139915112494144 dispatch.py:180] Finished tracing + transforming _mean for pjit in 0.001945972 sec
+W1104 20:54:30.620139 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000212193 sec
+W1104 20:54:30.620596 139915112494144 dispatch.py:180] Finished tracing + transforming maximum for pjit in 0.000235796 sec
+W1104 20:54:30.621192 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000205755 sec
+W1104 20:54:30.621651 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000229597 sec
+W1104 20:54:30.622619 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000203133 sec
+W1104 20:54:30.623042 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000198364 sec
+W1104 20:54:30.623857 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000199080 sec
+W1104 20:54:30.626082 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000208378 sec
+W1104 20:54:30.626794 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000208378 sec
+W1104 20:54:30.627488 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000208616 sec
+W1104 20:54:30.628286 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000218630 sec
+W1104 20:54:30.628783 139915112494144 dispatch.py:180] Finished tracing + transforming _uniform for pjit in 0.003580570 sec
+W1104 20:54:30.629404 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000324965 sec
+W1104 20:54:30.629927 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000199795 sec
+W1104 20:54:30.631217 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000201464 sec
+W1104 20:54:30.635787 139915112494144 dispatch.py:180] Finished tracing + transforming sqrt for pjit in 0.000199318 sec
+W1104 20:54:30.636352 139915112494144 dispatch.py:180] Finished tracing + transforming true_divide for pjit in 0.000197887 sec
+W1104 20:54:30.637334 139915112494144 dispatch.py:180] Finished tracing + transforming _einsum for pjit in 0.000414610 sec
+W1104 20:54:30.638036 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_max for pjit in 0.000416040 sec
+W1104 20:54:30.638538 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000199080 sec
+W1104 20:54:30.638927 139915112494144 dispatch.py:180] Finished tracing + transforming exp for pjit in 0.000170708 sec
+W1104 20:54:30.639504 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_sum for pjit in 0.000341177 sec
+W1104 20:54:30.639996 139915112494144 dispatch.py:180] Finished tracing + transforming true_divide for pjit in 0.000264883 sec
+W1104 20:54:30.640926 139915112494144 dispatch.py:180] Finished tracing + transforming _einsum for pjit in 0.000435352 sec
+W1104 20:54:30.643346 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000205755 sec
+W1104 20:54:30.647164 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000210762 sec
+W1104 20:54:30.648162 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000220537 sec
+W1104 20:54:30.648915 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000212431 sec
+W1104 20:54:30.649387 139915112494144 dispatch.py:180] Finished tracing + transforming _uniform for pjit in 0.003084183 sec
+W1104 20:54:30.649999 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000193357 sec
+W1104 20:54:30.651582 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000205517 sec
+W1104 20:54:30.652029 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000199080 sec
+W1104 20:54:30.652514 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000262260 sec
+W1104 20:54:30.652931 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000197172 sec
+W1104 20:54:30.653209 139915112494144 dispatch.py:180] Finished tracing + transforming _uniform for pjit in 0.002261639 sec
+W1104 20:54:30.653603 139915112494144 dispatch.py:180] Finished tracing + transforming _normal_real for pjit in 0.002890110 sec
+W1104 20:54:30.653891 139915112494144 dispatch.py:180] Finished tracing + transforming _normal for pjit in 0.003388643 sec
+W1104 20:54:30.654388 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000189781 sec
+W1104 20:54:30.655165 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000203848 sec
+W1104 20:54:30.655780 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000231743 sec
+W1104 20:54:30.656225 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000198841 sec
+W1104 20:54:30.657171 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000716686 sec
+W1104 20:54:30.657591 139915112494144 dispatch.py:180] Finished tracing + transforming tanh for pjit in 0.000175714 sec
+W1104 20:54:30.658033 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000224590 sec
+W1104 20:54:30.658586 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000204802 sec
+W1104 20:54:30.660392 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000204563 sec
+W1104 20:54:30.661571 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000214815 sec
+W1104 20:54:30.662502 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000390768 sec
+W1104 20:54:30.662976 139915112494144 dispatch.py:180] Finished tracing + transforming _uniform for pjit in 0.003523350 sec
+W1104 20:54:30.663587 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000196457 sec
+W1104 20:54:30.665189 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000211477 sec
+W1104 20:54:30.665708 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000202656 sec
+W1104 20:54:30.666129 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000205755 sec
+W1104 20:54:30.666455 139915112494144 dispatch.py:180] Finished tracing + transforming _uniform for pjit in 0.001906395 sec
+W1104 20:54:30.666848 139915112494144 dispatch.py:180] Finished tracing + transforming _normal_real for pjit in 0.002610207 sec
+W1104 20:54:30.667137 139915112494144 dispatch.py:180] Finished tracing + transforming _normal for pjit in 0.003040791 sec
+W1104 20:54:30.667644 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000200033 sec
+W1104 20:54:30.685333 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000211239 sec
+W1104 20:54:30.685863 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000206709 sec
+W1104 20:54:30.686288 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000205278 sec
+W1104 20:54:30.686578 139915112494144 dispatch.py:180] Finished tracing + transforming _uniform for pjit in 0.001900673 sec
+W1104 20:54:30.687332 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000206947 sec
+W1104 20:54:30.688582 139915112494144 dispatch.py:180] Finished tracing + transforming maximum for pjit in 0.000209808 sec
+W1104 20:54:30.689000 139915112494144 dispatch.py:180] Finished tracing + transforming minimum for pjit in 0.000204802 sec
+W1104 20:54:30.689245 139915112494144 dispatch.py:180] Finished tracing + transforming clip for pjit in 0.001109123 sec
+W1104 20:54:30.689684 139915112494144 dispatch.py:180] Finished tracing + transforming _truncated_normal for pjit in 0.005926132 sec
+W1104 20:54:30.690165 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000198364 sec
+W1104 20:54:30.691016 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_max for pjit in 0.000390291 sec
+W1104 20:54:30.691495 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000198841 sec
+W1104 20:54:30.691867 139915112494144 dispatch.py:180] Finished tracing + transforming exp for pjit in 0.000164986 sec
+W1104 20:54:30.692509 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_sum for pjit in 0.000334024 sec
+W1104 20:54:30.692931 139915112494144 dispatch.py:180] Finished tracing + transforming true_divide for pjit in 0.000197411 sec
+W1104 20:54:30.693629 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_sum for pjit in 0.000270605 sec
+W1104 20:54:30.695536 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_sum for pjit in 0.000318050 sec
+W1104 20:54:30.695936 139915112494144 dispatch.py:180] Finished tracing + transforming _mean for pjit in 0.000909328 sec
+W1104 20:54:30.696622 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_sum for pjit in 0.000254154 sec
+W1104 20:54:30.697229 139915112494144 dispatch.py:180] Finished tracing + transforming greater for pjit in 0.000255823 sec
+W1104 20:54:30.698365 139915112494144 dispatch.py:180] Finished tracing + transforming _broadcast_arrays for pjit in 0.000113726 sec
+W1104 20:54:30.698608 139915112494144 dispatch.py:180] Finished tracing + transforming _where for pjit in 0.000603914 sec
+W1104 20:54:30.698979 139915112494144 dispatch.py:180] Finished tracing + transforming _var for pjit in 0.004291534 sec
+W1104 20:54:30.699445 139915112494144 dispatch.py:180] Finished tracing + transforming _std for pjit in 0.005052805 sec
+W1104 20:54:30.852334 139915112494144 dispatch.py:180] Finished tracing + transforming _mean for pjit in 0.000488520 sec
+W1104 20:54:30.855504 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000217199 sec
+W1104 20:54:30.856080 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000220776 sec
+W1104 20:54:30.856521 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000210762 sec
+W1104 20:54:30.856816 139915112494144 dispatch.py:180] Finished tracing + transforming _uniform for pjit in 0.002079248 sec
+W1104 20:54:30.857672 139915112494144 dispatch.py:180] Finished tracing + transforming _normal_real for pjit in 0.003231049 sec
+W1104 20:54:30.857960 139915112494144 dispatch.py:180] Finished tracing + transforming _normal for pjit in 0.003677607 sec
+W1104 20:54:30.858445 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000237703 sec
+W1104 20:54:30.858912 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000203609 sec
+W1104 20:54:30.860404 139915112494144 dispatch.py:180] Finished tracing + transforming less for pjit in 0.000298023 sec
+W1104 20:54:30.861031 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000378132 sec
+W1104 20:54:30.862821 139915112494144 dispatch.py:180] Finished tracing + transforming equal for pjit in 0.000329494 sec
+W1104 20:54:30.863263 139915112494144 dispatch.py:180] Finished tracing + transforming _one_hot for pjit in 0.001318932 sec
+W1104 20:54:30.864761 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000210762 sec
+W1104 20:54:30.865605 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_sum for pjit in 0.000272512 sec
+W1104 20:54:30.866627 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000206947 sec
+W1104 20:54:30.867725 139915112494144 dispatch.py:180] Finished tracing + transforming true_divide for pjit in 0.000427723 sec
+W1104 20:54:30.901804 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000240564 sec
+W1104 20:54:30.902903 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000226498 sec
+W1104 20:54:30.903981 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000219345 sec
+W1104 20:54:30.904980 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000218630 sec
+W1104 20:54:30.905863 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000239372 sec
+W1104 20:54:30.907697 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_sum for pjit in 0.000316381 sec
+W1104 20:54:30.908217 139915112494144 dispatch.py:180] Finished tracing + transforming _mean for pjit in 0.001648426 sec
+W1104 20:54:30.910156 139915112494144 dispatch.py:180] Finished tracing + transforming _argmax for pjit in 0.000176907 sec
+W1104 20:54:30.911226 139915112494144 dispatch.py:180] Finished tracing + transforming _one_hot for pjit in 0.000473499 sec
+W1104 20:54:30.913192 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_sum for pjit in 0.000315189 sec
+W1104 20:54:30.913706 139915112494144 dispatch.py:180] Finished tracing + transforming _mean for pjit in 0.001141548 sec
+W1104 20:54:30.914873 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000202417 sec
+W1104 20:54:30.915846 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000251293 sec
+W1104 20:54:30.916903 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000229597 sec
+W1104 20:54:30.917429 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000248194 sec
+W1104 20:54:30.917970 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000200748 sec
+W1104 20:54:30.918228 139915112494144 moe.py:253] The target capacity_factor is 1.500000, but with num_tokens=1040 and num_experts=8 the actual capacity_factor is 1.507692.
+W1104 20:54:30.918612 139915112494144 dispatch.py:180] Finished tracing + transforming swapaxes for pjit in 0.000160933 sec
+W1104 20:54:30.919493 139915112494144 dispatch.py:180] Finished tracing + transforming ravel for pjit in 0.000306845 sec
+W1104 20:54:30.920693 139915112494144 dispatch.py:180] Finished tracing + transforming equal for pjit in 0.000217199 sec
+W1104 20:54:30.921111 139915112494144 dispatch.py:180] Finished tracing + transforming _one_hot for pjit in 0.001105309 sec
+W1104 20:54:30.922378 139915112494144 dispatch.py:180] Finished tracing + transforming cumsum for pjit in 0.000218153 sec
+W1104 20:54:30.923217 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000274658 sec
+W1104 20:54:30.924115 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000291348 sec
+W1104 20:54:30.925082 139915112494144 dispatch.py:180] Finished tracing + transforming swapaxes for pjit in 0.000159502 sec
+W1104 20:54:30.925888 139915112494144 dispatch.py:180] Finished tracing + transforming swapaxes for pjit in 0.000160217 sec
+W1104 20:54:30.926832 139915112494144 dispatch.py:180] Finished tracing + transforming _reduce_max for pjit in 0.000289202 sec
+W1104 20:54:30.928048 139915112494144 dispatch.py:180] Finished tracing + transforming equal for pjit in 0.000215292 sec
+W1104 20:54:30.928412 139915112494144 dispatch.py:180] Finished tracing + transforming _one_hot for pjit in 0.000969410 sec
+W1104 20:54:30.930261 139915112494144 dispatch.py:180] Finished tracing + transforming _einsum for pjit in 0.000718832 sec
+W1104 20:54:30.932384 139915112494144 dispatch.py:180] Finished tracing + transforming run_setup_only for pjit in 0.000257492 sec
+W1104 20:54:30.933366 139915112494144 dispatch.py:180] Finished tracing + transforming _einsum for pjit in 0.000467062 sec
+W1104 20:54:30.933972 139915112494144 dispatch.py:180] Finished tracing + transforming swapaxes for pjit in 0.000162125 sec
+W1104 20:54:30.937501 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000483513 sec
+W1104 20:54:30.939481 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000733137 sec
+W1104 20:54:30.941212 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000573874 sec
+W1104 20:54:30.942694 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000568390 sec
+W1104 20:54:30.943904 139915112494144 dispatch.py:180] Finished tracing + transforming tanh for pjit in 0.000283003 sec
+W1104 20:54:30.945355 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000731468 sec
+W1104 20:54:30.947223 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000580549 sec
+W1104 20:54:30.950733 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000535488 sec
+W1104 20:54:30.953355 139915112494144 dispatch.py:180] Finished tracing + transforming _einsum for pjit in 0.000405788 sec
+W1104 20:54:30.996483 139915112494144 moe.py:253] The target capacity_factor is 1.500000, but with num_tokens=1040 and num_experts=8 the actual capacity_factor is 1.507692.
+W1104 20:54:30.999670 139915112494144 dispatch.py:180] Finished tracing + transforming run_setup_only for pjit in 0.000244141 sec
+W1104 20:54:31.050841 139915112494144 moe.py:253] The target capacity_factor is 1.500000, but with num_tokens=1040 and num_experts=8 the actual capacity_factor is 1.507692.
+W1104 20:54:31.053989 139915112494144 dispatch.py:180] Finished tracing + transforming run_setup_only for pjit in 0.000242233 sec
+W1104 20:54:31.104677 139915112494144 moe.py:253] The target capacity_factor is 1.500000, but with num_tokens=1040 and num_experts=8 the actual capacity_factor is 1.507692.
+W1104 20:54:31.107825 139915112494144 dispatch.py:180] Finished tracing + transforming run_setup_only for pjit in 0.000239134 sec
+W1104 20:54:31.158770 139915112494144 moe.py:253] The target capacity_factor is 1.500000, but with num_tokens=1040 and num_experts=8 the actual capacity_factor is 1.507692.
+W1104 20:54:31.161943 139915112494144 dispatch.py:180] Finished tracing + transforming run_setup_only for pjit in 0.000243902 sec
+W1104 20:54:31.212709 139915112494144 moe.py:253] The target capacity_factor is 1.500000, but with num_tokens=1040 and num_experts=8 the actual capacity_factor is 1.507692.
+W1104 20:54:31.215939 139915112494144 dispatch.py:180] Finished tracing + transforming run_setup_only for pjit in 0.000246048 sec
+W1104 20:54:31.228805 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000218153 sec
+W1104 20:54:31.250697 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000236034 sec
+W1104 20:54:31.251411 139915112494144 dispatch.py:180] Finished tracing + transforming maximum for pjit in 0.000285387 sec
+W1104 20:54:31.251865 139915112494144 dispatch.py:180] Finished tracing + transforming minimum for pjit in 0.000228405 sec
+W1104 20:54:31.252127 139915112494144 dispatch.py:180] Finished tracing + transforming clip for pjit in 0.001158953 sec
+W1104 20:54:31.252645 139915112494144 dispatch.py:180] Finished tracing + transforming true_divide for pjit in 0.000251293 sec
+W1104 20:54:31.253130 139915112494144 dispatch.py:180] Finished tracing + transforming subtract for pjit in 0.000235319 sec
+W1104 20:54:31.253662 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000215530 sec
+W1104 20:54:31.254127 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000218391 sec
+W1104 20:54:31.254661 139915112494144 dispatch.py:180] Finished tracing + transforming less for pjit in 0.000285625 sec
+W1104 20:54:31.255207 139915112494144 dispatch.py:180] Finished tracing + transforming minimum for pjit in 0.000221491 sec
+W1104 20:54:31.255703 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000244379 sec
+W1104 20:54:31.256192 139915112494144 dispatch.py:180] Finished tracing + transforming true_divide for pjit in 0.000241280 sec
+W1104 20:54:31.256575 139915112494144 dispatch.py:180] Finished tracing + transforming cos for pjit in 0.000158072 sec
+W1104 20:54:31.257024 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000226021 sec
+W1104 20:54:31.257466 139915112494144 dispatch.py:180] Finished tracing + transforming _multiply for pjit in 0.000201464 sec
+W1104 20:54:31.257998 139915112494144 dispatch.py:180] Finished tracing + transforming _power for pjit in 0.000270844 sec
+W1104 20:54:31.258534 139915112494144 dispatch.py:180] Finished tracing + transforming _add for pjit in 0.000190496 sec
+W1104 20:54:31.259121 139915112494144 dispatch.py:180] Finished tracing + transforming _negative for pjit in 0.000140429 sec
+W1104 20:54:31.287444 139915112494144 dispatch.py:180] Finished tracing + transforming initialize for pjit in 0.720282316 sec
+I1104 20:54:31.294860 139915112494144 trainer.py:430] Partially initializing the TrainState: axis_resources_regexes:
+- !!python/tuple
+  - Moe/Mlp/.*
+  - !!python/tuple
+    - expert
+name: initialize_from_vmoe
+prefix: gs://vmoe_checkpoints/vmoe_b16_imagenet21k_randaug_strong
+raise_if_target_unmatched: false
+rules:
+- !!python/tuple
+  - head
+  - ''
+- !!python/tuple
+  - ^(.*/pos_embedding)$
+  - params/\1
+  - vit_zoom
+- !!python/tuple
+  - ^(.*)$
+  - params/\1
+
+2024-11-04 20:54:31.312901: W external/local_tsl/tsl/platform/cloud/google_auth_provider.cc:184] All attempts to get a Google authentication bearer token failed, returning an empty token. Retrieving token from files failed with "NOT_FOUND: Could not locate the credentials file.". Retrieving token from GCE failed with "FAILED_PRECONDITION: Error executing an HTTP request: libcurl code 6 meaning 'Couldn't resolve host name', error details: Could not resolve host: metadata.google.internal".
+W1104 20:54:58.489473 139915112494144 mapping.py:237] Target key 'step' is unmatched. The original value with shape () and type int32 will be preserved.
+W1104 20:54:58.489868 139915112494144 mapping.py:237] Target key 'params/head/bias' is unmatched. The original value with shape (10,) and type float32 will be preserved.
+W1104 20:54:58.489947 139915112494144 mapping.py:237] Target key 'params/head/kernel' is unmatched. The original value with shape (768, 10) and type float32 will be preserved.
+W1104 20:54:58.490011 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoder_norm/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.490071 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoder_norm/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.490124 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.490176 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.490225 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.490274 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.490323 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/Mlp/Dense_0/bias' is unmatched. The original value with shape (3072,) and type float32 will be preserved.
+W1104 20:54:58.490376 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/Mlp/Dense_0/kernel' is unmatched. The original value with shape (768, 3072) and type float32 will be preserved.
+W1104 20:54:58.490425 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/Mlp/Dense_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.490474 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/Mlp/Dense_1/kernel' is unmatched. The original value with shape (3072, 768) and type float32 will be preserved.
+W1104 20:54:58.490524 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.490576 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.490625 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.490675 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.490724 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.490770 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.490816 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.490862 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_0/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.490908 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.490955 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.491002 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.491048 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.491095 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/Moe/Mlp/Dense_0/bias' is unmatched. The original value with shape (8, 3072) and type float32 will be preserved.
+W1104 20:54:58.491142 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/Moe/Mlp/Dense_0/kernel' is unmatched. The original value with shape (8, 768, 3072) and type float32 will be preserved.
+W1104 20:54:58.491188 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/Moe/Mlp/Dense_1/bias' is unmatched. The original value with shape (8, 768) and type float32 will be preserved.
+W1104 20:54:58.491234 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/Moe/Mlp/Dense_1/kernel' is unmatched. The original value with shape (8, 3072, 768) and type float32 will be preserved.
+W1104 20:54:58.491281 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/Moe/Router/dense/kernel' is unmatched. The original value with shape (768, 8) and type float32 will be preserved.
+W1104 20:54:58.491326 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.491372 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.491418 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.491463 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.491510 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.491557 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.491604 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.491650 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_1/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.491698 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.491745 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.491791 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.491836 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.491880 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/Mlp/Dense_0/bias' is unmatched. The original value with shape (3072,) and type float32 will be preserved.
+W1104 20:54:58.491926 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/Mlp/Dense_0/kernel' is unmatched. The original value with shape (768, 3072) and type float32 will be preserved.
+W1104 20:54:58.491971 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/Mlp/Dense_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.492016 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/Mlp/Dense_1/kernel' is unmatched. The original value with shape (3072, 768) and type float32 will be preserved.
+W1104 20:54:58.492062 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.492127 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.492174 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.492219 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.492264 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.492309 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.492354 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.492399 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_10/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.492443 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.492488 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.492531 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.492575 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.492621 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/Moe/Mlp/Dense_0/bias' is unmatched. The original value with shape (8, 3072) and type float32 will be preserved.
+W1104 20:54:58.492666 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/Moe/Mlp/Dense_0/kernel' is unmatched. The original value with shape (8, 768, 3072) and type float32 will be preserved.
+W1104 20:54:58.492712 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/Moe/Mlp/Dense_1/bias' is unmatched. The original value with shape (8, 768) and type float32 will be preserved.
+W1104 20:54:58.492757 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/Moe/Mlp/Dense_1/kernel' is unmatched. The original value with shape (8, 3072, 768) and type float32 will be preserved.
+W1104 20:54:58.492803 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/Moe/Router/dense/kernel' is unmatched. The original value with shape (768, 8) and type float32 will be preserved.
+W1104 20:54:58.492847 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.492891 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.492936 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.492981 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.493025 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.493070 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.493115 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.493163 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_11/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.493208 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.493254 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.493299 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.493344 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.493388 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/Mlp/Dense_0/bias' is unmatched. The original value with shape (3072,) and type float32 will be preserved.
+W1104 20:54:58.493434 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/Mlp/Dense_0/kernel' is unmatched. The original value with shape (768, 3072) and type float32 will be preserved.
+W1104 20:54:58.493479 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/Mlp/Dense_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.493525 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/Mlp/Dense_1/kernel' is unmatched. The original value with shape (3072, 768) and type float32 will be preserved.
+W1104 20:54:58.493572 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.493618 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.493664 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.493711 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.493758 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.493804 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.493849 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.493895 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_2/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.493939 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.493983 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.494027 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.494072 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.494117 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/Moe/Mlp/Dense_0/bias' is unmatched. The original value with shape (8, 3072) and type float32 will be preserved.
+W1104 20:54:58.494162 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/Moe/Mlp/Dense_0/kernel' is unmatched. The original value with shape (8, 768, 3072) and type float32 will be preserved.
+W1104 20:54:58.494206 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/Moe/Mlp/Dense_1/bias' is unmatched. The original value with shape (8, 768) and type float32 will be preserved.
+W1104 20:54:58.494251 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/Moe/Mlp/Dense_1/kernel' is unmatched. The original value with shape (8, 3072, 768) and type float32 will be preserved.
+W1104 20:54:58.494295 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/Moe/Router/dense/kernel' is unmatched. The original value with shape (768, 8) and type float32 will be preserved.
+W1104 20:54:58.494338 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.494382 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.494426 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.494471 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.494517 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.494563 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.494609 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.494653 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_3/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.494699 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.494744 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.494788 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.494833 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.494877 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/Mlp/Dense_0/bias' is unmatched. The original value with shape (3072,) and type float32 will be preserved.
+W1104 20:54:58.494923 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/Mlp/Dense_0/kernel' is unmatched. The original value with shape (768, 3072) and type float32 will be preserved.
+W1104 20:54:58.494969 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/Mlp/Dense_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.495015 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/Mlp/Dense_1/kernel' is unmatched. The original value with shape (3072, 768) and type float32 will be preserved.
+W1104 20:54:58.495062 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.495107 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.495152 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.495196 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.495240 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.495285 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.495330 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.495376 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_4/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.495423 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.495469 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.495515 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.495560 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.495604 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/Moe/Mlp/Dense_0/bias' is unmatched. The original value with shape (8, 3072) and type float32 will be preserved.
+W1104 20:54:58.495649 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/Moe/Mlp/Dense_0/kernel' is unmatched. The original value with shape (8, 768, 3072) and type float32 will be preserved.
+W1104 20:54:58.495693 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/Moe/Mlp/Dense_1/bias' is unmatched. The original value with shape (8, 768) and type float32 will be preserved.
+W1104 20:54:58.495737 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/Moe/Mlp/Dense_1/kernel' is unmatched. The original value with shape (8, 3072, 768) and type float32 will be preserved.
+W1104 20:54:58.495782 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/Moe/Router/dense/kernel' is unmatched. The original value with shape (768, 8) and type float32 will be preserved.
+W1104 20:54:58.495826 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.495871 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.495914 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.495960 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.496004 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.496049 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.496109 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.496157 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_5/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.496203 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.496249 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.496293 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.496338 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.496383 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/Mlp/Dense_0/bias' is unmatched. The original value with shape (3072,) and type float32 will be preserved.
+W1104 20:54:58.496429 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/Mlp/Dense_0/kernel' is unmatched. The original value with shape (768, 3072) and type float32 will be preserved.
+W1104 20:54:58.496473 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/Mlp/Dense_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.496517 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/Mlp/Dense_1/kernel' is unmatched. The original value with shape (3072, 768) and type float32 will be preserved.
+W1104 20:54:58.496562 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.496606 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.496651 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.496695 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.496740 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.496784 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.496829 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.496874 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_6/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.496919 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.496964 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.497008 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.497052 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.497097 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/Moe/Mlp/Dense_0/bias' is unmatched. The original value with shape (8, 3072) and type float32 will be preserved.
+W1104 20:54:58.497143 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/Moe/Mlp/Dense_0/kernel' is unmatched. The original value with shape (8, 768, 3072) and type float32 will be preserved.
+W1104 20:54:58.497188 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/Moe/Mlp/Dense_1/bias' is unmatched. The original value with shape (8, 768) and type float32 will be preserved.
+W1104 20:54:58.497233 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/Moe/Mlp/Dense_1/kernel' is unmatched. The original value with shape (8, 3072, 768) and type float32 will be preserved.
+W1104 20:54:58.497277 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/Moe/Router/dense/kernel' is unmatched. The original value with shape (768, 8) and type float32 will be preserved.
+W1104 20:54:58.497322 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.497367 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.497412 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.497457 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.497502 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.497548 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.497593 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.497639 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_7/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.497683 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.497727 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.497772 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.497815 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.497860 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/Mlp/Dense_0/bias' is unmatched. The original value with shape (3072,) and type float32 will be preserved.
+W1104 20:54:58.497905 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/Mlp/Dense_0/kernel' is unmatched. The original value with shape (768, 3072) and type float32 will be preserved.
+W1104 20:54:58.497950 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/Mlp/Dense_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.497994 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/Mlp/Dense_1/kernel' is unmatched. The original value with shape (3072, 768) and type float32 will be preserved.
+W1104 20:54:58.498039 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.498084 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.498130 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.498176 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.498221 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.498265 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.498310 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.498354 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_8/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.498399 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/LayerNorm_0/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.498445 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/LayerNorm_0/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.498489 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/LayerNorm_1/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.498533 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/LayerNorm_1/scale' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.498578 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/Moe/Mlp/Dense_0/bias' is unmatched. The original value with shape (8, 3072) and type float32 will be preserved.
+W1104 20:54:58.498622 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/Moe/Mlp/Dense_0/kernel' is unmatched. The original value with shape (8, 768, 3072) and type float32 will be preserved.
+W1104 20:54:58.498667 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/Moe/Mlp/Dense_1/bias' is unmatched. The original value with shape (8, 768) and type float32 will be preserved.
+W1104 20:54:58.498712 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/Moe/Mlp/Dense_1/kernel' is unmatched. The original value with shape (8, 3072, 768) and type float32 will be preserved.
+W1104 20:54:58.498757 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/Moe/Router/dense/kernel' is unmatched. The original value with shape (768, 8) and type float32 will be preserved.
+W1104 20:54:58.498801 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/SelfAttention/key/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.498845 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/SelfAttention/key/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.498891 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/SelfAttention/out/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.498936 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/SelfAttention/out/kernel' is unmatched. The original value with shape (12, 64, 768) and type float32 will be preserved.
+W1104 20:54:58.498981 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/SelfAttention/query/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.499025 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/SelfAttention/query/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.499069 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/SelfAttention/value/bias' is unmatched. The original value with shape (12, 64) and type float32 will be preserved.
+W1104 20:54:58.499114 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/encoderblock_9/SelfAttention/value/kernel' is unmatched. The original value with shape (768, 12, 64) and type float32 will be preserved.
+W1104 20:54:58.499157 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/Encoder/posembed_input/pos_embedding' is unmatched. The original value with shape (1, 65, 768) and type float32 will be preserved.
+W1104 20:54:58.499203 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/cls' is unmatched. The original value with shape (1, 1, 768) and type float32 will be preserved.
+W1104 20:54:58.499249 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/embedding/bias' is unmatched. The original value with shape (768,) and type float32 will be preserved.
+W1104 20:54:58.499294 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/embedding/kernel' is unmatched. The original value with shape (16, 16, 3, 768) and type float32 will be preserved.
+W1104 20:54:58.499340 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/head/bias' is unmatched. The original value with shape (10,) and type float32 will be preserved.
+W1104 20:54:58.499385 139915112494144 mapping.py:237] Target key 'opt_state/2/trace/head/kernel' is unmatched. The original value with shape (768, 10) and type float32 will be preserved.
+W1104 20:54:58.499429 139915112494144 mapping.py:237] Target key 'opt_state/4/count' is unmatched. The original value with shape () and type int32 will be preserved.
+W1104 20:54:58.499475 139915112494144 mapping.py:237] Target key 'opt_state/4/hyperparams/learning_rate' is unmatched. The original value with shape () and type float32 will be preserved.
+W1104 20:54:58.499519 139915112494144 mapping.py:237] Target key 'opt_state/4/hyperparams_states/learning_rate/count' is unmatched. The original value with shape () and type int32 will be preserved.
+W1104 20:54:58.499569 139915112494144 mapping.py:237] Target key 'rngs/dropout' is unmatched. The original value with shape (4,) and type uint32 will be preserved.
+W1104 20:54:58.499616 139915112494144 mapping.py:237] Target key 'rngs/gating' is unmatched. The original value with shape (4,) and type uint32 will be preserved.
+W1104 20:54:58.583662 139915112494144 dispatch.py:180] Finished tracing + transforming fn for pjit in 0.002869368 sec
+W1104 20:54:58.590185 139915112494144 pxla.py:1904] Compiling fn with global shapes and types [ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[3072]), ShapedArray(float32[768,3072]), ShapedArray(float32[768]), ShapedArray(float32[3072,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[8,3072]), ShapedArray(float32[8,768,3072]), ShapedArray(float32[8,768]), ShapedArray(float32[8,3072,768]), ShapedArray(float32[768,8]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[3072]), ShapedArray(float32[768,3072]), ShapedArray(float32[768]), ShapedArray(float32[3072,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[8,3072]), ShapedArray(float32[8,768,3072]), ShapedArray(float32[8,768]), ShapedArray(float32[8,3072,768]), ShapedArray(float32[768,8]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[3072]), ShapedArray(float32[768,3072]), ShapedArray(float32[768]), ShapedArray(float32[3072,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[8,3072]), ShapedArray(float32[8,768,3072]), ShapedArray(float32[8,768]), ShapedArray(float32[8,3072,768]), ShapedArray(float32[768,8]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[3072]), ShapedArray(float32[768,3072]), ShapedArray(float32[768]), ShapedArray(float32[3072,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[8,3072]), ShapedArray(float32[8,768,3072]), ShapedArray(float32[8,768]), ShapedArray(float32[8,3072,768]), ShapedArray(float32[768,8]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[3072]), ShapedArray(float32[768,3072]), ShapedArray(float32[768]), ShapedArray(float32[3072,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[8,3072]), ShapedArray(float32[8,768,3072]), ShapedArray(float32[8,768]), ShapedArray(float32[8,3072,768]), ShapedArray(float32[768,8]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[3072]), ShapedArray(float32[768,3072]), ShapedArray(float32[768]), ShapedArray(float32[3072,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[768]), ShapedArray(float32[8,3072]), ShapedArray(float32[8,768,3072]), ShapedArray(float32[8,768]), ShapedArray(float32[8,3072,768]), ShapedArray(float32[768,8]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[768]), ShapedArray(float32[12,64,768]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[12,64]), ShapedArray(float32[768,12,64]), ShapedArray(float32[1,197,768]), ShapedArray(float32[1,1,768]), ShapedArray(float32[768]), ShapedArray(float32[16,16,3,768])]. Argument mapping: (NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec('expert',), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device), NamedSharding(mesh=Mesh('expert': 8, 'replica': 1), spec=PartitionSpec(), memory_kind=device)).
+/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/interpreters/mlir.py:1101: UserWarning: Some donated buffers were not usable: ShapedArray(float32[1,197,768]).
+See an explanation at https://jax.readthedocs.io/en/latest/faq.html#buffer-donation.
+  warnings.warn("Some donated buffers were not usable:"
+W1104 20:54:58.608719 139915112494144 dispatch.py:180] Finished jaxpr to MLIR module conversion pjit(fn) in 0.017088652 sec
+F1104 20:54:58.655733  559832 shape_tree.cc:54] Check failed: result->children_start_id >= 0 (-1 vs. 0) 
+*** Check failure stack trace: ***
+    @     0x7f3efa096db4  absl::lts_20230802::log_internal::LogMessage::SendToLog()
+    @     0x7f3efa096cb4  absl::lts_20230802::log_internal::LogMessage::Flush()
+    @     0x7f3efa097159  absl::lts_20230802::log_internal::LogMessageFatal::~LogMessageFatal()
+    @     0x7f3ef7121cd1  xla::internal::IndexTable::operator[]()
+    @     0x7f3ef6eb3844  xla::HloDataflowAnalysis::GetValueSet()
+    @     0x7f3ef6c1044c  xla::BufferAssignment::GetUniqueSlice()
+    @     0x7f3ef6a20cce  xla::gpu::GetAllocationSlice()
+    @     0x7f3ef5bf311b  xla::gpu::(anonymous namespace)::GetResultSlice()
+    @     0x7f3ef5bf5807  xla::ShapeUtil::ForEachSubshapeWithStatus<>()::{lambda()#1}::operator()()
+    @     0x7f3ef5bf5678  xla::ShapeUtil::ForEachMutableSubshapeWithStatusHelper<>()
+    @     0x7f3ef5bf56ff  xla::ShapeUtil::ForEachMutableSubshapeWithStatusHelper<>()
+    @     0x7f3ef5bee08d  xla::gpu::DynamicSliceFusion::Emit()
+    @     0x7f3ef29f4474  xla::gpu::IrEmitterUnnested::EmitFusion()
+    @     0x7f3ef29ff105  xla::gpu::IrEmitterUnnested::EmitHloInstruction()
+    @     0x7f3ef29e1c0e  xla::gpu::IrEmitterUnnested::EmitHloComputation()
+    @     0x7f3ef27c07aa  xla::gpu::CompileModuleToLlvmIr()
+    @     0x7f3ef27a0870  xla::gpu::GpuCompiler::CompileToBackendResult()
+    @     0x7f3ef27a375f  xla::gpu::GpuCompiler::RunBackend()
+    @     0x7f3ef5a8c00f  xla::LLVMCompiler::Compile()
+    @     0x7f3ef276aebe  xla::Service::BuildExecutables()
+    @     0x7f3ef2735879  xla::LocalService::CompileExecutables()
+    @     0x7f3ef27292e4  xla::LocalClient::Compile()
+    @     0x7f3ef26cd7eb  xla::PjRtStreamExecutorClient::CompileInternal()
+    @     0x7f3ef26ce89e  xla::PjRtStreamExecutorClient::Compile()
+    @     0x7f3ef26264ba  std::__detail::__variant::__gen_vtable_impl<>::__visit_invoke()
+    @     0x7f3ef2616214  pjrt::PJRT_Client_Compile()
+    @     0x7f3fdb595e2d  xla::InitializeArgsAndCompile()
+    @     0x7f3fdb5962ef  xla::PjRtCApiClient::Compile()
+    @     0x7f3fe126d58c  xla::ifrt::PjRtLoadedExecutable::Create()
+    @     0x7f3fe12689c1  xla::ifrt::PjRtCompiler::Compile()
+    @     0x7f3fe0a0178e  xla::PyClient::CompileIfrtProgram()
+    @     0x7f3fe0a0266e  xla::PyClient::Compile()
+    @     0x7f3fe0a0a97f  nanobind::detail::func_create<>()::{lambda()#1}::__invoke()
+    @     0x7f3fe1246e41  nanobind::detail::nb_func_vectorcall_complex()
+    @     0x7f4085d6e478  nanobind::detail::nb_bound_method_vectorcall()
+    @           0x53ee61  PyObject_Vectorcall
+Fatal Python error: Aborted
+
+Thread 0x00007f0f667c8640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 579 in _handle_results
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f66fc9640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 531 in _handle_tasks
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f677ca640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/selectors.py", line 415 in select
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/connection.py", line 1136 in wait
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 502 in _wait_for_updates
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 522 in _handle_workers
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f67fcb640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f687cc640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f68fcd640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f697ce640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f69fcf640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6a7d0640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6afd1640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6b7d2640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6bfd3640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6c7d4640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6cfd5640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6d7d6640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6dfd7640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6e7d8640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6efd9640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6f7da640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f6ffdb640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f707dc640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f70fdd640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f717de640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f71fdf640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f727e0640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f72fe1640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f737e2640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f73fe3640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f747e4640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f74fe5640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f757e6640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f75fe7640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f767e8640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f76fe9640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f777ea640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f77feb640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f787ec640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f78fed640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f797ee640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f79fef640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7a7f0640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7aff1640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7b7f2640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7bff3640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7c7f4640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7cff5640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7d7f6640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7dff7640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7e7f8640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7eff9640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7f7fa640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f7fffb640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f807fc640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f80ffd640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f817fe640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0f81fff640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0ff2f9f640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0ff37a0640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f0ff3fa1640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f105d923640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f105e124640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f105e925640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f106112a640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f1060128640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f105f126640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f1060929640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Thread 0x00007f105f927640 (most recent call first):
+  File "/home/mahmui/miniconda3/lib/python3.12/multiprocessing/pool.py", line 114 in worker
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1010 in run
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1073 in _bootstrap_inner
+  File "/home/mahmui/miniconda3/lib/python3.12/threading.py", line 1030 in _bootstrap
+
+Current thread 0x00007f4086943440 (most recent call first):
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/compiler.py", line 261 in backend_compile
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/profiler.py", line 333 in wrapper
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/compiler.py", line 655 in _compile_and_write_cache
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/compiler.py", line 427 in compile_or_get_cached
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/interpreters/pxla.py", line 2647 in _cached_compilation
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/interpreters/pxla.py", line 2835 in from_hlo
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/interpreters/pxla.py", line 2321 in compile
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/pjit.py", line 1640 in _pjit_call_impl_python
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/pjit.py", line 1710 in call_impl_cache_miss
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/pjit.py", line 1734 in _pjit_call_impl
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/core.py", line 948 in process_primitive
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/core.py", line 442 in bind_with_trace
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/core.py", line 2781 in bind
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/pjit.py", line 188 in _python_pjit_helper
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/pjit.py", line 338 in cache_miss
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/jax/_src/traceback_util.py", line 180 in reraise_with_filtered_traceback
+  File "/home/mahmui/src/src/vmoe/vmoe/initialization/mapping.py", line 209 in _flat_state_dict_mapping_apply
+  File "/home/mahmui/src/src/vmoe/vmoe/initialization/mapping.py", line 101 in map_state_dict
+  File "/home/mahmui/src/src/vmoe/vmoe/initialization/initialization.py", line 267 in initialize_from_vmoe
+  File "/home/mahmui/src/src/vmoe/vmoe/train/trainer.py", line 530 in initialize_train_state_from_checkpoint
+  File "/home/mahmui/src/src/vmoe/vmoe/train/trainer.py", line 434 in restore_or_create_train_state
+  File "/home/mahmui/src/src/vmoe/vmoe/train/trainer.py", line 722 in train_and_evaluate
+  File "/home/mahmui/src/src/vmoe/vmoe/app.py", line 93 in _main
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/absl/app.py", line 254 in _run_main
+  File "/home/mahmui/src/env/lib/python3.12/site-packages/absl/app.py", line 308 in run
+  File "/home/mahmui/src/src/vmoe/vmoe/app.py", line 57 in run
+  File "/home/mahmui/src/src/vmoe/my_train.py", line 20 in <module>
+
+Extension modules: jaxlib.cpu_feature_guard, numpy.core._multiarray_umath, numpy.core._multiarray_tests, numpy.linalg._umath_linalg, numpy.fft._pocketfft_internal, numpy.random._common, numpy.random.bit_generator, numpy.random._bounded_integers, numpy.random._mt19937, numpy.random.mtrand, numpy.random._philox, numpy.random._pcg64, numpy.random._sfc64, numpy.random._generator, google._upb._message, charset_normalizer.md, requests.packages.charset_normalizer.md, requests.packages.chardet.md, h5py._errors, h5py.defs, h5py._objects, h5py.h5, h5py.utils, h5py.h5t, h5py.h5s, h5py.h5ac, h5py.h5p, h5py.h5r, h5py._proxy, h5py._conv, h5py.h5z, h5py.h5a, h5py.h5d, h5py.h5ds, h5py.h5g, h5py.h5i, h5py.h5o, h5py.h5f, h5py.h5fd, h5py.h5pl, h5py.h5l, h5py._selector, scipy._lib._ccallback_c, scipy.sparse._sparsetools, _csparsetools, scipy.sparse._csparsetools, scipy.linalg._fblas, scipy.linalg._flapack, scipy.linalg.cython_lapack, scipy.linalg._cythonized_array_utils, scipy.linalg._solve_toeplitz, scipy.linalg._decomp_lu_cython, scipy.linalg._matfuncs_sqrtm_triu, scipy.linalg.cython_blas, scipy.linalg._matfuncs_expm, scipy.linalg._decomp_update, scipy.sparse.linalg._dsolve._superlu, scipy.sparse.linalg._eigen.arpack._arpack, scipy.sparse.linalg._propack._spropack, scipy.sparse.linalg._propack._dpropack, scipy.sparse.linalg._propack._cpropack, scipy.sparse.linalg._propack._zpropack, scipy.sparse.csgraph._tools, scipy.sparse.csgraph._shortest_path, scipy.sparse.csgraph._traversal, scipy.sparse.csgraph._min_spanning_tree, scipy.sparse.csgraph._flow, scipy.sparse.csgraph._matching, scipy.sparse.csgraph._reordering, psutil._psutil_linux, psutil._psutil_posix, pyarrow.lib, pandas._libs.tslibs.ccalendar, pandas._libs.tslibs.np_datetime, pandas._libs.tslibs.dtypes, pandas._libs.tslibs.base, pandas._libs.tslibs.nattype, pandas._libs.tslibs.timezones, pandas._libs.tslibs.fields, pandas._libs.tslibs.timedeltas, pandas._libs.tslibs.tzconversion, pandas._libs.tslibs.timestamps, pandas._libs.properties, pandas._libs.tslibs.offsets, pandas._libs.tslibs.strptime, pandas._libs.tslibs.parsing, pandas._libs.tslibs.conversion, pandas._libs.tslibs.period, pandas._libs.tslibs.vectorized, pandas._libs.ops_dispatch, pandas._libs.missing, pandas._libs.hashtable, pandas._libs.algos, pandas._libs.interval, pandas._libs.lib, pyarrow._compute, pandas._libs.ops, pandas._libs.hashing, pandas._libs.arrays, pandas._libs.tslib, pandas._libs.sparse, pandas._libs.internals, pandas._libs.indexing, pandas._libs.index, pandas._libs.writers, pandas._libs.join, pandas._libs.window.aggregations, pandas._libs.window.indexers, pandas._libs.reshape, pandas._libs.groupby, pandas._libs.json, pandas._libs.parsers, pandas._libs.testing, yaml._yaml, msgpack._cmsgpack, scipy.ndimage._nd_image, scipy.special._ufuncs_cxx, scipy.special._ufuncs, scipy.special._specfun, scipy.special._comb, scipy.special._ellip_harm_2, _ni_label, scipy.ndimage._ni_label (total: 123)
+Aborted (core dumped)
