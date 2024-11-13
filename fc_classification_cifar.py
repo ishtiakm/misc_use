@@ -79,12 +79,12 @@ if __name__ == '__main__':
     # set hyper-parameters
     train_batch_size = 100
     test_batch_size = 100
-    n_epochs = 5
+    n_epochs = 70
     learning_rate = 1e-2
     seed = 100
     input_dim = 32 * 32 * 3
     out_dim = 10
-    num_hidden_layers = 2
+    num_hidden_layers = 4
     layer_size = 50
     momentum = 0.9
 
@@ -113,4 +113,6 @@ if __name__ == '__main__':
     # training loop
     for epoch in range(1, n_epochs + 1):
         # YOUR CODE GOES HERE
-        pass
+        print("comes here")
+        
+        train(network, train_loader, optimizer, epoch, device)
